@@ -1,0 +1,41 @@
+import { GoogleGenAI } from "@google/genai";
+import { Language } from "../types";
+
+const getSystemInstruction = (lang: Language) => {
+  if (lang === 'fr') {
+    return "Tu es un mentor de vie sage, calme et stoïque. Donne un seul conseil court, profond et psychologique pour la journée. Pas de jargon d'entreprise. Ton amical et humain.";
+  }
+  if (lang === 'dr') {
+    return "You are a wise and calm mentor. Give one short, profound life tip in Moroccan Darija using Latin script (Arabizi). No complex jargon. Friendly and human tone.";
+  }
+  return "You are a wise, calm, and stoic life mentor. Give a single short, profound, psychological life tip for the day. No corporate jargon. Human and friendly tone.";
+};
+
+export const fetchLifeTip = async (lang: Language): Promise<string> => {
+  if (!process.env.API_KEY) {
+    console.warn("API Key missing");
+    if (lang === 'dr') return "Bda b l'haja s3iba hiya loula, l'ba9i ghayjik sahel.";
+    if (lang === 'fr') return "Commence par la tâche la plus difficile — le reste paraîtra plus simple.";
+    return "Start with the hardest task first — everything else will feel easier.";
+  }
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: "Give me one tip.",
+      config: {
+        systemInstruction: getSystemInstruction(lang),
+        temperature: 0.7,
+        maxOutputTokens: 100,
+      }
+    });
+
+    return response.text?.trim() || (lang === 'dr' ? "Tneffes mezyan." : "Take a deep breath.");
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    if (lang === 'dr') return "L'khedma hiya a7san dwa l'9ala9.";
+    if (lang === 'fr') return "L'action est le meilleur remède contre l'inquiétude.";
+    return "Action is the best antidote to anxiety.";
+  }
+};
